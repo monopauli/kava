@@ -154,6 +154,11 @@ import (
 	validatorvesting "github.com/kava-labs/kava/x/validator-vesting"
 	validatorvestingrest "github.com/kava-labs/kava/x/validator-vesting/client/rest"
 	validatorvestingtypes "github.com/kava-labs/kava/x/validator-vesting/types"
+
+	//Packet-forward-middleware
+	packetforward "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v6/router"
+	packetforwardkeeper "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v6/router/keeper"
+	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v6/router/types"
 )
 
 const (
@@ -216,6 +221,7 @@ var (
 		router.AppModuleBasic{},
 		mint.AppModuleBasic{},
 		community.AppModuleBasic{},
+		packetforward.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -330,6 +336,9 @@ type App struct {
 
 	// configurator
 	configurator module.Configurator
+
+	// packet forward middleware keeper
+	packetForwardKeeper *packetforwardkeeper.Keeper
 }
 
 func init() {
@@ -371,6 +380,7 @@ func NewApp(
 		swaptypes.StoreKey, cdptypes.StoreKey, hardtypes.StoreKey,
 		committeetypes.StoreKey, incentivetypes.StoreKey, evmutiltypes.StoreKey,
 		savingstypes.StoreKey, earntypes.StoreKey, minttypes.StoreKey,
+		packetforwardtypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey, evmtypes.TransientKey, feemarkettypes.TransientKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -416,6 +426,7 @@ func NewApp(
 	evmutilSubspace := app.paramsKeeper.Subspace(evmutiltypes.ModuleName)
 	earnSubspace := app.paramsKeeper.Subspace(earntypes.ModuleName)
 	mintSubspace := app.paramsKeeper.Subspace(minttypes.ModuleName)
+	packetforwardtypesSubspace := app.paramsKeeper.Subspace(packetforwardtypes.ModuleName)
 
 	bApp.SetParamStore(
 		app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramstypes.ConsensusParamsKeyTable()),
@@ -532,24 +543,36 @@ func NewApp(
 
 	app.evmutilKeeper.SetEvmKeeper(app.evmKeeper)
 
+	//Initialize the packet forward middleware keeper
+	app.packetForwardKeeper = packetforwardkeeper.NewKeeper(
+		appCodec,
+		keys[packetforwardtypes.StoreKey],
+		packetforwardtypesSubspace,
+		app.transferKeeper, // will be zero-value here, reference is set later on with SetTransferKeeper.
+		app.ibcKeeper.ChannelKeeper,
+		app.distrKeeper,
+		app.bankKeeper,
+		app.ibcKeeper.ChannelKeeper,
+	)
+
 	app.transferKeeper = ibctransferkeeper.NewKeeper(
 		appCodec,
 		keys[ibctransfertypes.StoreKey],
 		ibctransferSubspace,
-		app.ibcKeeper.ChannelKeeper,
+		app.packetForwardKeeper,
 		app.ibcKeeper.ChannelKeeper,
 		&app.ibcKeeper.PortKeeper,
 		app.accountKeeper,
 		app.bankKeeper,
 		scopedTransferKeeper,
 	)
+	app.packetForwardKeeper.SetTransferKeeper(app.transferKeeper)
 	transferModule := transfer.NewAppModule(app.transferKeeper)
-	transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
+	//transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
-	app.ibcKeeper.SetRouter(ibcRouter)
+	//ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
 
 	app.auctionKeeper = auctionkeeper.NewKeeper(
 		appCodec,
@@ -790,6 +813,8 @@ func NewApp(
 		// nil InflationCalculationFn, use SDK's default inflation function
 		mint.NewAppModule(appCodec, app.mintKeeper, app.accountKeeper, nil),
 		community.NewAppModule(app.communityKeeper, app.accountKeeper),
+		//Register packet forward kjeeper module
+		packetforward.NewAppModule((app.packetForwardKeeper)),
 	)
 
 	// Warning: Some begin blockers must run before others. Ensure the dependencies are understood before modifying this list.
@@ -840,6 +865,8 @@ func NewApp(
 		liquidtypes.ModuleName,
 		earntypes.ModuleName,
 		routertypes.ModuleName,
+		//Add packet forward middleware
+		packetforwardtypes.ModuleName,
 	)
 
 	// Warning: Some end blockers must run before others. Ensure the dependencies are understood before modifying this list.
@@ -882,6 +909,8 @@ func NewApp(
 		routertypes.ModuleName,
 		minttypes.ModuleName,
 		communitytypes.ModuleName,
+		//Add packet forward middleware
+		packetforwardtypes.ModuleName,
 	)
 
 	// Warning: Some init genesis methods must run before others. Ensure the dependencies are understood before modifying this list
@@ -923,6 +952,7 @@ func NewApp(
 		validatorvestingtypes.ModuleName,
 		liquidtypes.ModuleName,
 		routertypes.ModuleName,
+		packetforwardtypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.crisisKeeper)
@@ -1000,6 +1030,21 @@ func NewApp(
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
 	app.ScopedTransferKeeper = scopedTransferKeeper
+
+	// Create PFM transfer stack
+	var transferStack porttypes.IBCModule
+	transferStack = transfer.NewIBCModule(app.transferKeeper)
+	transferStack = packetforward.NewIBCMiddleware(
+		transferStack,
+		app.packetForwardKeeper,
+		0, // retries on timeout
+		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp, // forward timeout
+		packetforwardkeeper.DefaultRefundTransferPacketTimeoutTimestamp,  // refund timeout
+	)
+
+	// Add transfer stack to IBC Router
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	app.ibcKeeper.SetRouter(ibcRouter)
 
 	return app
 }
