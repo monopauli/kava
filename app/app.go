@@ -1063,8 +1063,8 @@ func NewApp(
 	)
 
 	// Add transfer stack to IBC Router
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
-	app.ibcKeeper.SetRouter(ibcRouter)
+	//ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	//app.ibcKeeper.SetRouter(ibcRouter)
 
 	return app
 }
