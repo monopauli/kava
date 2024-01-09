@@ -574,11 +574,11 @@ func NewApp(
 	)
 	app.packetForwardKeeper.SetTransferKeeper(app.transferKeeper)
 	transferModule := transfer.NewAppModule(app.transferKeeper)
-	//transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
+	transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
-	//ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
 	app.ibcKeeper.SetRouter(ibcRouter)
 
 	app.auctionKeeper = auctionkeeper.NewKeeper(
