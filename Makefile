@@ -334,3 +334,14 @@ update-kvtool:
 	cd tests/e2e/kvtool && make install
 
 .PHONY: all build-linux install clean build test test-cli test-all test-rest test-basic start-remote-sims
+
+get-heighliner:
+	git clone https://github.com/strangelove-ventures/heighliner.git
+	cd heighliner && go install
+
+local-image:
+	@if [ -z "$(shell which heighliner)" ]; then \
+		echo 'heighliner binary not found. Consider running `make get-heighliner`'; \
+	else \
+		heighliner build -c kava --local --dockerfile cosmos --build-target "make install" --binaries "/go/bin/kava"; \
+	fi
