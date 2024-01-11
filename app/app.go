@@ -411,6 +411,9 @@ func NewApp(
 		keys[paramstypes.StoreKey],
 		tkeys[paramstypes.TStoreKey],
 	)
+
+	//app.paramsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tkeys[paramstypes.StoreKey])
+
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSubspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
 	stakingSubspace := app.paramsKeeper.Subspace(stakingtypes.ModuleName)
@@ -866,6 +869,8 @@ func NewApp(
 		incentivetypes.ModuleName,
 		ibchost.ModuleName,
 		// Add all remaining modules with an empty begin blocker below since cosmos 0.45.0 requires it
+		//Add packet forward middleware
+		packetforwardtypes.ModuleName,
 		swaptypes.ModuleName,
 		vestingtypes.ModuleName,
 		pricefeedtypes.ModuleName,
@@ -883,8 +888,6 @@ func NewApp(
 		liquidtypes.ModuleName,
 		earntypes.ModuleName,
 		routertypes.ModuleName,
-		//Add packet forward middleware
-		packetforwardtypes.ModuleName,
 	)
 
 	// Warning: Some end blockers must run before others. Ensure the dependencies are understood before modifying this list.
@@ -897,6 +900,8 @@ func NewApp(
 		feemarkettypes.ModuleName,
 		pricefeedtypes.ModuleName,
 		// Add all remaining modules with an empty end blocker below since cosmos 0.45.0 requires it
+		//Add packet forward middleware
+		packetforwardtypes.ModuleName,
 		capabilitytypes.ModuleName,
 		incentivetypes.ModuleName,
 		issuancetypes.ModuleName,
@@ -928,8 +933,6 @@ func NewApp(
 		minttypes.ModuleName,
 		communitytypes.ModuleName,
 		metricstypes.ModuleName,
-		//Add packet forward middleware
-		packetforwardtypes.ModuleName,
 	)
 
 	// Warning: Some init genesis methods must run before others. Ensure the dependencies are understood before modifying this list
@@ -965,6 +968,7 @@ func NewApp(
 		genutiltypes.ModuleName, // runs arbitrary txs included in genisis state, so run after modules have been initialized
 		crisistypes.ModuleName,  // runs the invariants at genesis, should run after other modules
 		// Add all remaining modules with an empty InitGenesis below since cosmos 0.45.0 requires it
+		packetforwardtypes.ModuleName,
 		vestingtypes.ModuleName,
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
@@ -972,7 +976,6 @@ func NewApp(
 		liquidtypes.ModuleName,
 		routertypes.ModuleName,
 		metricstypes.ModuleName,
-		packetforwardtypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.crisisKeeper)
@@ -1057,7 +1060,7 @@ func NewApp(
 	transferStack = packetforward.NewIBCMiddleware(
 		transferStack,
 		app.packetForwardKeeper,
-		0, // retries on timeout
+		10, // retries on timeout
 		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp, // forward timeout
 		packetforwardkeeper.DefaultRefundTransferPacketTimeoutTimestamp,  // refund timeout
 	)
@@ -1187,6 +1190,24 @@ func (app *App) RegisterTendermintService(clientCtx client.Context) {
 
 func (app *App) RegisterNodeService(clientCtx client.Context) {
 	nodeservice.RegisterNodeService(clientCtx, app.BaseApp.GRPCQueryRouter())
+}
+
+// initParamsKeeper init params keeper and its subspaces
+func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) paramskeeper.Keeper {
+	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
+
+	paramsKeeper.Subspace(authtypes.ModuleName)
+	paramsKeeper.Subspace(banktypes.ModuleName)
+	paramsKeeper.Subspace(stakingtypes.ModuleName)
+	paramsKeeper.Subspace(minttypes.ModuleName)
+	paramsKeeper.Subspace(distrtypes.ModuleName)
+	paramsKeeper.Subspace(slashingtypes.ModuleName)
+	paramsKeeper.Subspace(govtypes.ModuleName)
+	paramsKeeper.Subspace(crisistypes.ModuleName)
+	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
+	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
+
+	return paramsKeeper
 }
 
 // loadBlockedMaccAddrs returns a map indicating the blocked status of each module account address
