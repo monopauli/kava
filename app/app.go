@@ -577,12 +577,7 @@ func NewApp(
 	)
 	app.packetForwardKeeper.SetTransferKeeper(app.transferKeeper)
 	transferModule := transfer.NewAppModule(app.transferKeeper)
-	transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
-
-	// Create static IBC router, add transfer route, then set and seal it
-	ibcRouter := porttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
-	app.ibcKeeper.SetRouter(ibcRouter)
+	//transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
 
 	app.auctionKeeper = auctionkeeper.NewKeeper(
 		appCodec,
@@ -1060,12 +1055,18 @@ func NewApp(
 	transferStack = packetforward.NewIBCMiddleware(
 		transferStack,
 		app.packetForwardKeeper,
-		10, // retries on timeout
+		0, // retries on timeout
 		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp, // forward timeout
 		packetforwardkeeper.DefaultRefundTransferPacketTimeoutTimestamp,  // refund timeout
 	)
 
 	// Add transfer stack to IBC Router
+	// Create static IBC router, add transfer route, then set and seal it
+	ibcRouter := porttypes.NewRouter()
+	//ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	app.ibcKeeper.SetRouter(ibcRouter)
+
 	//ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 	//app.ibcKeeper.SetRouter(ibcRouter)
 
@@ -1193,22 +1194,22 @@ func (app *App) RegisterNodeService(clientCtx client.Context) {
 }
 
 // initParamsKeeper init params keeper and its subspaces
-func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) paramskeeper.Keeper {
-	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
+// func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) paramskeeper.Keeper {
+// 	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
 
-	paramsKeeper.Subspace(authtypes.ModuleName)
-	paramsKeeper.Subspace(banktypes.ModuleName)
-	paramsKeeper.Subspace(stakingtypes.ModuleName)
-	paramsKeeper.Subspace(minttypes.ModuleName)
-	paramsKeeper.Subspace(distrtypes.ModuleName)
-	paramsKeeper.Subspace(slashingtypes.ModuleName)
-	paramsKeeper.Subspace(govtypes.ModuleName)
-	paramsKeeper.Subspace(crisistypes.ModuleName)
-	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
-	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
+// 	paramsKeeper.Subspace(authtypes.ModuleName)
+// 	paramsKeeper.Subspace(banktypes.ModuleName)
+// 	paramsKeeper.Subspace(stakingtypes.ModuleName)
+// 	paramsKeeper.Subspace(minttypes.ModuleName)
+// 	paramsKeeper.Subspace(distrtypes.ModuleName)
+// 	paramsKeeper.Subspace(slashingtypes.ModuleName)
+// 	paramsKeeper.Subspace(govtypes.ModuleName)
+// 	paramsKeeper.Subspace(crisistypes.ModuleName)
+// 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
+// 	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
 
-	return paramsKeeper
-}
+// 	return paramsKeeper
+// }
 
 // loadBlockedMaccAddrs returns a map indicating the blocked status of each module account address
 func (app *App) loadBlockedMaccAddrs() map[string]bool {
