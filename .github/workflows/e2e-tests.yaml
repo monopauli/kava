@@ -77,10 +77,10 @@ jobs:
       - name: Download Tarball Artifact
         uses: actions/download-artifact@v3
         with:
-          name: noble-docker-image
+          name: kava-docker-image
 
       - name: Load Docker Image
         run: docker image load -i ${{ env.TAR_PATH }}
 
       - name: run test
-        run: cd interchaintest && go test -race -v packet_forward_test.go
+        run: cd interchaintest && go test -race -v -run ^${{ matrix.test }}$ .
