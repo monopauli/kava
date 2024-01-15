@@ -340,8 +340,16 @@ get-heighliner:
 	cd heighliner && go install
 
 local-image:
-	@if [ -z "$(shell which heighliner)" ]; then \
-		echo 'heighliner binary not found. Consider running `make get-heighliner`'; \
-	else \
-		heighliner build -c kava --local --dockerfile cosmos --build-target "make install" --binaries "/go/bin/kava"; \
-	fi
+ifeq (,$(shell which heighliner))
+	echo 'heighliner' binary not found. Consider running `make get-heighliner`
+else
+	heighliner build -c kava --local -f ./chains.yaml
+endif
+
+
+# local-image:
+# 	@if [ -z "$(shell which heighliner)" ]; then \
+# 		echo 'heighliner binary not found. Consider running `make get-heighliner`'; \
+# 	else \
+# 		heighliner build -c kava --local --dockerfile cosmos --build-target "make install" --binaries "/go/bin/kava"; \
+# 	fi

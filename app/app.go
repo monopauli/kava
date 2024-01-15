@@ -412,8 +412,6 @@ func NewApp(
 		tkeys[paramstypes.TStoreKey],
 	)
 
-	//app.paramsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tkeys[paramstypes.StoreKey])
-
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSubspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
 	stakingSubspace := app.paramsKeeper.Subspace(stakingtypes.ModuleName)
@@ -577,7 +575,6 @@ func NewApp(
 	)
 	app.packetForwardKeeper.SetTransferKeeper(app.transferKeeper)
 	transferModule := transfer.NewAppModule(app.transferKeeper)
-	//transferIBCModule := transfer.NewIBCModule(app.transferKeeper)
 
 	app.auctionKeeper = auctionkeeper.NewKeeper(
 		appCodec,
@@ -1192,24 +1189,6 @@ func (app *App) RegisterTendermintService(clientCtx client.Context) {
 func (app *App) RegisterNodeService(clientCtx client.Context) {
 	nodeservice.RegisterNodeService(clientCtx, app.BaseApp.GRPCQueryRouter())
 }
-
-// initParamsKeeper init params keeper and its subspaces
-// func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) paramskeeper.Keeper {
-// 	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
-
-// 	paramsKeeper.Subspace(authtypes.ModuleName)
-// 	paramsKeeper.Subspace(banktypes.ModuleName)
-// 	paramsKeeper.Subspace(stakingtypes.ModuleName)
-// 	paramsKeeper.Subspace(minttypes.ModuleName)
-// 	paramsKeeper.Subspace(distrtypes.ModuleName)
-// 	paramsKeeper.Subspace(slashingtypes.ModuleName)
-// 	paramsKeeper.Subspace(govtypes.ModuleName)
-// 	paramsKeeper.Subspace(crisistypes.ModuleName)
-// 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
-// 	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
-
-// 	return paramsKeeper
-// }
 
 // loadBlockedMaccAddrs returns a map indicating the blocked status of each module account address
 func (app *App) loadBlockedMaccAddrs() map[string]bool {
