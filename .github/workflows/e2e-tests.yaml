@@ -23,6 +23,8 @@ jobs:
 
           # Heighliner chains.yaml config
           chain: kava
+          github-organization: monopauli
+          github-repo: kava
           dockerfile: cosmos
           build-target: make install
           binaries: |
