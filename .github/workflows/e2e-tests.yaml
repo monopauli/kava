@@ -88,7 +88,7 @@ jobs:
         run: docker images
 
       - name: Inspect Docker image
-        run: docker inspect kava:local
+        run: docker inspect kava:latest
 
       - name: run test
         run: cd interchaintest && go test -race -v -run ^${{ matrix.test }}$ .
