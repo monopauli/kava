@@ -26,7 +26,7 @@ jobs:
           github-organization: monopauli
           github-repo: kava
           dockerfile: cosmos
-          build-target: git checkout interchaintest && make install
+          build-target: make install
           binaries: |
             - /go/bin/kava
 
