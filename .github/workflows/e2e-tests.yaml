@@ -41,6 +41,12 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
+      - name: List Docker images
+        run: docker images
+
+      - name: Inspect Docker image
+        run: docker inspect kava:local
+
       - name: Checkout code
         uses: actions/checkout@v4
 
