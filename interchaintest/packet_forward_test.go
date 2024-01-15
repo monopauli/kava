@@ -33,6 +33,7 @@ type ForwardMetadata struct {
 
 // run `make local-image`to rebuild updated binary before running test
 func TestPacketForwardMiddleware(t *testing.T) {
+
 	if testing.Short() {
 		t.Skip("skipping in short mode")
 	}
