@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Get heighliner
+        run: make get-heighliner
 
       - name: Build Docker image using Make
         run: make local-image
