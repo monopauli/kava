@@ -12,23 +12,14 @@ jobs:
   build-docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Build Docker image
-        uses: strangelove-ventures/heighliner-build-action@v0.0.3
-        with:
-          registry: "" # empty registry, image only shared for e2e testing
-          tag: local # emulate local environment for consistency in interchaintest cases
-          tar-export-path: ${{ env.TAR_PATH }} # export a tarball that can be uploaded as an artifact for the e2e jobs
-          platform: linux/amd64 # test runner architecture only
-          git-ref: ${{ github.head_ref }} # source code ref
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          # Heighliner chains.yaml config
-          chain: kava
-          github-organization: monopauli
-          github-repo: kava
-          dockerfile: cosmos
-          build-target: make install
-          binaries: |
-            - /go/bin/kava
+      - name: Build Docker image using Make
+        run: make local-image
+
+      - name: Save Docker image as a Tarball
+        run: docker save kava:local > ${{ env.TAR_PATH }}
 
       - name: Publish Tarball as Artifact
         uses: actions/upload-artifact@v3
@@ -55,7 +46,7 @@ jobs:
           # Run the command and convert its output to a JSON array
           TESTS=$(cd interchaintest && go test -list . | grep -v "^ok " | jq -R -s -c 'split("\n")[:-1]')
           echo "matrix=${TESTS}" >> $GITHUB_OUTPUT
-  
+
   e2e-tests:
     needs:
       - build-docker
@@ -82,13 +73,13 @@ jobs:
           name: kava-docker-image
 
       - name: Load Docker Image
-        run: docker image load -i ${{ env.TAR_PATH }}
+        run: docker load -i ${{ env.TAR_PATH }}
 
       - name: List Docker images
         run: docker images
 
       - name: Inspect Docker image
-        run: docker inspect kava:latest
+        run: docker inspect kava:local
 
       - name: run test
         run: cd interchaintest && go test -race -v -run ^${{ matrix.test }}$ .
