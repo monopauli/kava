@@ -25,19 +25,24 @@ func TestConformance(t *testing.T) {
 			NumValidators: &numOfValidators,
 			NumFullNodes:  &numOfFullNodes,
 		},
-		{
-			Name: "kava",
-			ChainConfig: ibc.ChainConfig{
-				Images: []ibc.DockerImage{
-					{
-						Repository: "kava",
-						Version:    "local",
-						UidGid:     "1025:1025",
-					},
+		{ChainConfig: ibc.ChainConfig{
+			Type:    "cosmos",
+			Name:    "kava",
+			ChainID: "kava_2222-10",
+			Images: []ibc.DockerImage{
+				{
+					Repository: "kava",  // FOR LOCAL IMAGE USE: Docker Image Name
+					Version:    "local", // FOR LOCAL IMAGE USE: Docker Image Tag
+					UidGid:     "1025:1025",
 				},
 			},
-			NumValidators: &numOfValidators,
-			NumFullNodes:  &numOfFullNodes,
+			Bin:            "kava",
+			Bech32Prefix:   "kava",
+			Denom:          "stake",
+			GasPrices:      "0.00stake",
+			GasAdjustment:  1.3,
+			TrustingPeriod: "508h",
+			NoHostMount:    false},
 		},
 	})
 
