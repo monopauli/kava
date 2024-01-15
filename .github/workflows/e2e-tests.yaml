@@ -22,10 +22,10 @@ jobs:
           git-ref: ${{ github.head_ref }} # source code ref
 
           # Heighliner chains.yaml config
-          # chain: kava
-          # github-organization: monopauli
-          # github-repo: kava
-          # dockerfile: cosmos
+          chain: kava
+          github-organization: monopauli
+          github-repo: kava
+          dockerfile: cosmos
           build-target: make install
           binaries: |
             - /go/bin/kava
