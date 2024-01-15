@@ -14,12 +14,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Get heighliner
-        run: make get-heighliner
 
-      - name: Build Docker image using Make
-        run: make local-image
+      - name: Build Docker image
+        run: docker build -t kava:local .
 
       - name: Save Docker image as a Tarball
         run: docker save kava:local > ${{ env.TAR_PATH }}
